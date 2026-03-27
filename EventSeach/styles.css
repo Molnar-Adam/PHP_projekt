@@ -1,0 +1,112 @@
+:root {
+	color-scheme: light;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	background: #d7d7d7;
+	color: #101010;
+}
+
+.page-shell {
+	width: min(96vw, 120rem);
+	margin: 0 auto;
+	padding: clamp(1rem, 2.2vw, 2rem) 0 clamp(1.5rem, 2.8vw, 2.5rem);
+}
+
+h1 {
+	margin: 0 0 clamp(0.75rem, 1.5vw, 1.25rem);
+	font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+	font-weight: 700;
+}
+
+.state {
+	background: #ffffff;
+	border: 0.0625rem solid #d5d5d5;
+	border-radius: 0.875rem;
+	padding: clamp(0.75rem, 1.3vw, 1.1rem);
+}
+
+.state.error {
+	border-color: #e4b0b0;
+	background: #fff2f2;
+	color: #9c1f1f;
+}
+
+.events-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(clamp(11rem, 15vw, 13.5rem), 1fr));
+	gap: clamp(0.65rem, 1.2vw, 1.1rem);
+}
+
+.event-card {
+	background: #efefef;
+	border: 0.0625rem solid #d1d1d1;
+	border-radius: 1rem;
+	padding: clamp(0.75rem, 1.4vw, 1.1rem);
+	box-shadow: 0 0.45rem 1.2rem rgba(0, 0, 0, 0.08);
+}
+
+.event-icon {
+	text-align: center;
+	font-size: clamp(1.9rem, 2.8vw, 2.7rem);
+	line-height: 1;
+	color: #82b4cf;
+	margin-bottom: clamp(0.5rem, 1vw, 0.85rem);
+	font-weight: 300;
+}
+
+.event-card h2 {
+	margin: 0;
+	font-size: clamp(1.15rem, 1.75vw, 1.6rem);
+	line-height: 1.2;
+	font-weight: 500;
+	text-align: center;
+}
+
+.event-category {
+	margin: clamp(0.35rem, 0.8vw, 0.6rem) 0 clamp(0.55rem, 1vw, 0.85rem);
+	font-size: clamp(1rem, 1.5vw, 1.35rem);
+	line-height: 1.2;
+	text-align: center;
+}
+
+.event-description {
+	margin: 0 0 clamp(0.5rem, 1vw, 0.85rem);
+	font-size: clamp(0.8rem, 1.1vw, 0.9rem);
+	color: #303030;
+}
+
+.event-meta {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	gap: clamp(0.2rem, 0.45vw, 0.4rem);
+	font-size: clamp(0.78rem, 1.05vw, 0.9rem);
+}
+
+@media (min-width: 75rem) {
+	.events-grid {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 48rem) {
+	.page-shell {
+		padding-top: 1rem;
+	}
+
+	.event-card h2 {
+		font-size: clamp(1.1rem, 4.6vw, 1.35rem);
+	}
+
+	.event-category {
+		font-size: clamp(0.95rem, 4vw, 1.2rem);
+	}
+}

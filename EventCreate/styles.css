@@ -11,9 +11,14 @@ body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: #f4f4f6;
   color: #1f1f1f;
+  min-height: 100vh;
+}
+
+.page-content {
+  min-height: calc(100vh - 56px);
   display: grid;
   place-items: center;
-  min-height: 100vh;
+  padding: 20px 0;
 }
 
 .login-wrap {
@@ -56,7 +61,35 @@ input {
   color: #1f1f1f;
 }
 
+form select,
+#restriction {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  border: 1px solid #d6d6d6;
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: #ffffff;
+  color: #1f1f1f;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #555 50%),
+    linear-gradient(135deg, #555 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 2px),
+    calc(100% - 12px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
 input:focus {
+  outline: 2px solid #1f1f1f;
+  outline-offset: 1px;
+  border-color: #1f1f1f;
+}
+
+form select:focus,
+#restriction:focus {
   outline: 2px solid #1f1f1f;
   outline-offset: 1px;
   border-color: #1f1f1f;
@@ -118,4 +151,10 @@ button:hover {
   background: #f2fbf5;
   border: 1px solid #bfe7c9;
   color: #1e7a3b;
+}
+
+@media (max-width: 480px) {
+  .page-content {
+    min-height: calc(100vh - 76px);
+  }
 }
