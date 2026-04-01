@@ -21,5 +21,6 @@ CREATE TABLE IF NOT EXISTS esemenyek (
     created_by TEXT NULL,
     curr_letszam INT NULL,
     max_letszam INT NULL,
+    attending_users JSON NOT NULL DEFAULT (JSON_ARRAY());
     PRIMARY KEY (id)
 );

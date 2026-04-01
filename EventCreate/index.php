@@ -15,6 +15,7 @@ include_once '../kulcsok.php';
 
 $notice = '';
 $noticeType = 'success';
+$minDateTime = (new DateTime('now'))->format('Y-m-d\TH:i');
 
 if (isset($_POST['userinfoSubmit'])) {
     try {
@@ -34,31 +35,33 @@ if (isset($_POST['userinfoSubmit'])) {
             $maxLetszam = (int) $_POST['max_letszam'];
             $currLetszam = 0;
 
-            $stmt = mysqli_prepare(
-                $conn,
-                "INSERT INTO esemenyek (name, category, time_start, time_end, restriction, description, place, city, max_letszam, curr_letszam, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            );
-            mysqli_stmt_bind_param(
-                $stmt,
-                "ssssssssiis",
-                $name,
-                $category,
-                $starttime,
-                $endtime,
-                $restriction,
-                $description,
-                $place,
-                $city,
-                $maxLetszam,
-                $currLetszam,
-                $createdBy
-            );
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
+            $startDateTime = DateTime::createFromFormat('Y-m-d\TH:i', $starttime);
+            $endDateTime = DateTime::createFromFormat('Y-m-d\TH:i', $endtime);
+            $nowDateTime = new DateTime('now');
 
-            $notice = "Esemény meghírdetve";
-            $noticeType = "success";
+            if (!$startDateTime || !$endDateTime) {
+                $notice = 'Érvénytelen dátum formátum';
+                $noticeType = 'error';
+            } elseif ($endDateTime <= $startDateTime) {
+                $notice = 'A befejezés időpontjának a kezdés időpontja után kell lennie';
+                $noticeType = 'error';
+            } elseif ($startDateTime <= $nowDateTime || $endDateTime <= $nowDateTime) {
+                $notice = 'A kezdési és befejezési időpontnak a jelenlegi idő után kell lennie';
+                $noticeType = 'error';
+            } else {
+
+                $stmt = mysqli_prepare(
+                    $conn,
+                    "INSERT INTO esemenyek (name, category, time_start, time_end, restriction, description, place, city, max_letszam, curr_letszam, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                );
+                mysqli_stmt_bind_param($stmt, "ssssssssiis", $name, $category, $starttime, $endtime, $restriction, $description, $place, $city, $maxLetszam, $currLetszam, $createdBy);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+
+                $notice = "Esemény meghírdetve";
+                $noticeType = "success";
+            }
         }
     } catch (Exception $e) {
         $notice = "Hiba történt az esemény meghirdetése során";
@@ -103,10 +106,12 @@ if (isset($_POST['userinfoSubmit'])) {
                     <input type="text" name="category" placeholder="Kategória">
 
                     <label>Kezdés időpontja</label>
-                    <input type="datetime-local" name="starttime" placeholder="Kezdés időpontja">
+                    <input type="datetime-local" name="starttime" placeholder="Kezdés időpontja"
+                        min="<?php echo $minDateTime; ?>" required>
 
                     <label>Esemény vége</label>
-                    <input type="datetime-local" name="endtime" placeholder="Esemény vége">
+                    <input type="datetime-local" name="endtime" placeholder="Esemény vége"
+                        min="<?php echo $minDateTime; ?>" required>
 
                     <label>Város</label>
                     <input type="text" name="city" placeholder="Város">
