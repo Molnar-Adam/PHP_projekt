@@ -21,6 +21,14 @@ CREATE TABLE IF NOT EXISTS esemenyek (
     created_by TEXT NULL,
     curr_letszam INT NULL,
     max_letszam INT NULL,
-    attending_users JSON NOT NULL DEFAULT (JSON_ARRAY());
+    attending_users JSON NOT NULL DEFAULT (JSON_ARRAY()),
     PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS event_images (
+    id int(11) NOT NULL AUTO_INCREMENT,
+    image TEXT NOT NULL,
+    event_id int(11) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_event_images_event FOREIGN KEY (event_id) REFERENCES esemenyek(id) ON DELETE CASCADE
 );

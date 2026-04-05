@@ -13,6 +13,16 @@
             $email = $_POST['email'];
             $birthdate = $_POST['birthdate'];
 
+            $birthdateObj = DateTime::createFromFormat('Y-m-d', $birthdate);
+            $today = new DateTime('today');
+{
+            $age = $birthdateObj->diff($today)->y;
+
+            if ($age < 13) {
+                    $notice = "Csak 13 éves vagy annál idősebb felhasználók regisztrálhatnak.";
+                    $noticeType = 'error';
+                } else {
+
             $hashedData = hash_hmac('sha256', $password, $key);
             
             $stmt = mysqli_prepare($conn, "SELECT * FROM users WHERE username=? OR email=?");
@@ -33,6 +43,8 @@
 
                 $notice = "Sikeres regisztráció!";
                 $noticeType = 'success';
+            }
+                }
             }
         }
         catch (Exception $e){
@@ -72,7 +84,7 @@
                 <input id="email" type="email" name="email" placeholder="Email">
 
                 <label for="birthdate">Születési dátum</label>
-                <input id="birthdate" type="date" name="birthdate" placeholder="Születési dátum">
+                <input id="birthdate" type="date" name="birthdate" placeholder="Születési dátum" max="<?php ?>">
 
                 <button type="submit" name="userinfoSubmit">Regisztráció</button>
                 <a class="button-secondary" href="../login/index.php">Vissza a bejelentkezéshez</a>
