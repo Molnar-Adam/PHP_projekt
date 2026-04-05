@@ -168,7 +168,7 @@ if (isset($_POST['userinfoSubmit'])) {
                             }
 
                             mysqli_commit($conn);
-                            $notice = 'Esemény meghírdetve';
+                            $notice = 'Esemény meghirdetve';
                             $noticeType = 'success';
                         } catch (Throwable $uploadException) {
                             mysqli_rollback($conn);
@@ -198,8 +198,8 @@ if (isset($_POST['userinfoSubmit'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../navbar/navbar.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../navbar/navbar.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="styles.css?v=<?php echo time(); ?>">
 </head>
 
 <body>
@@ -262,6 +262,21 @@ if (isset($_POST['userinfoSubmit'])) {
             </main>
         </div>
     </div>
+
+    <script>
+        (function () {
+            // Auto-hide notices after 5 seconds
+            const notices = document.querySelectorAll('.notice.success, .notice.error');
+            notices.forEach(notice => {
+                setTimeout(() => {
+                    notice.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    notice.style.opacity = '0';
+                    notice.style.transform = 'translateY(-10px)';
+                    setTimeout(() => notice.remove(), 500);
+                }, 5000);
+            });
+        })();
+    </script>
 </body>
 
 </html>

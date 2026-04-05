@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'togg
                         static fn($username) => $username !== $currentUsername
                     ));
                     $currLetszam = max(0, $currLetszam - 1);
-                    $actionNotice = 'Sikeres lejelentkezes az esemenyrol.';
+                    $actionNotice = 'Sikeres lejelentkezés az eseményről!';
                     $actionNoticeType = 'success';
                 } else {
                     if ($hasLimit && $currLetszam >= $maxLetszam) {
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'togg
                     } else {
                         $attendingUsers[] = $currentUsername;
                         $currLetszam++;
-                        $actionNotice = 'Sikeres jelentkezes az esemenyre.';
+                        $actionNotice = 'Sikeres jelentkezés az eseményre!';
                         $actionNoticeType = 'success';
                     }
                 }
@@ -173,8 +173,8 @@ foreach ($events as $event) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../navbar/navbar.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../navbar/navbar.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="styles.css?v=<?php echo time(); ?>">
     <title>EventSearch</title>
 </head>
 
@@ -217,13 +217,15 @@ foreach ($events as $event) {
     <div class="modal-overlay" id="eventModal" aria-hidden="true">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
             <button type="button" class="modal-close" id="modalClose" aria-label="Bezárás">&times;</button>
-            <h2 id="modalTitle">Esemény részletei</h2>
-            <ul class="modal-meta" id="modalMeta"></ul>
-            <form method="POST" class="modal-actions">
-                <input type="hidden" name="action" value="toggle_attendance">
-                <input type="hidden" name="event_id" id="modalEventId" value="">
-                <button type="submit" class="attendance-btn" id="attendanceBtn">Jelentkezés</button>
-            </form>
+            <div class="modal-content-wrapper">
+                <h2 id="modalTitle">Esemény részletei</h2>
+                <ul class="modal-meta" id="modalMeta"></ul>
+                <form method="POST" class="modal-actions">
+                    <input type="hidden" name="action" value="toggle_attendance">
+                    <input type="hidden" name="event_id" id="modalEventId" value="">
+                    <button type="submit" class="attendance-btn" id="attendanceBtn">Jelentkezés</button>
+                </form>
+            </div>
         </section>
     </div>
 
@@ -328,6 +330,17 @@ foreach ($events as $event) {
                 if (event.key === 'Escape' && modal.classList.contains('open')) {
                     closeModal();
                 }
+            });
+
+            // Auto-hide action notices after 5 seconds
+            const notices = document.querySelectorAll('.state.success, .state.error');
+            notices.forEach(notice => {
+                setTimeout(() => {
+                    notice.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    notice.style.opacity = '0';
+                    notice.style.transform = 'translateY(-10px)';
+                    setTimeout(() => notice.remove(), 500);
+                }, 5000);
             });
         })();
     </script>

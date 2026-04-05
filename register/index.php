@@ -59,12 +59,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=<?php echo time(); ?>">
 </head>
 <body>
     <div class="login-wrap">
         <main class="card">
-            <h1>Regisztració</h1>
+            <h1>Regisztráció</h1>
             <?php if ($notice !== ''): ?>
                 <div class="notice  <?php echo $noticeType === 'error' ? 'error' : 'success'; ?>">
                     <?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?>
@@ -91,5 +91,20 @@
             </form>
         </main>
     </div>
+
+    <script>
+        (function () {
+            // Auto-hide notices after 5 seconds
+            const notices = document.querySelectorAll('.notice.success, .notice.error');
+            notices.forEach(notice => {
+                setTimeout(() => {
+                    notice.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    notice.style.opacity = '0';
+                    notice.style.transform = 'translateY(-10px)';
+                    setTimeout(() => notice.remove(), 500);
+                }, 5000);
+            });
+        })();
+    </script>
 </body>
 </html>
