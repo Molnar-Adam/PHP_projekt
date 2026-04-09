@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'togg
 try {
     $sql = "SELECT id, name, category, time_start, time_end, restriction, description, place, city, curr_letszam, max_letszam, attending_users
             FROM esemenyek
-            ORDER BY time_start DESC, id DESC";
+            ORDER BY time_start ASC, id ASC";
     $result = mysqli_query($conn, $sql);
     if ($result) {
         $events = mysqli_fetch_all($result, MYSQLI_ASSOC);
@@ -281,9 +281,6 @@ foreach ($events as $event) {
             <div class="modal-content-wrapper">
                 <h2 id="modalTitle">Esemény részletei</h2>
                 <ul class="modal-meta" id="modalMeta"></ul>
-                <div class="modal-image-preview" id="modalImagePreview">
-                    <img id="modalPreviewImage" src="" alt="Kiválasztott eseménykép" loading="lazy" decoding="async">
-                </div>
                 <div class="modal-gallery" id="modalGallery" aria-label="Esemény képek"></div>
                 <form method="POST" class="modal-actions">
                     <input type="hidden" name="action" value="toggle_attendance">
@@ -299,14 +296,12 @@ foreach ($events as $event) {
             const modal = document.getElementById('eventModal');
             const modalClose = document.getElementById('modalClose');
             const modalMeta = document.getElementById('modalMeta');
-            const modalImagePreview = document.getElementById('modalImagePreview');
-            const modalPreviewImage = document.getElementById('modalPreviewImage');
             const modalGallery = document.getElementById('modalGallery');
             const modalEventId = document.getElementById('modalEventId');
             const attendanceBtn = document.getElementById('attendanceBtn');
             const cards = document.querySelectorAll('.card[data-event]');
 
-            if (!modal || !modalClose || !modalMeta || !modalImagePreview || !modalPreviewImage || !modalGallery || !modalEventId || !attendanceBtn || cards.length === 0) {
+            if (!modal || !modalClose || !modalMeta || !modalGallery || !modalEventId || !attendanceBtn || cards.length === 0) {
                 return;
             }
 
@@ -343,17 +338,12 @@ foreach ($events as $event) {
 
                 const images = Array.isArray(data.images) ? data.images.slice(0, 10) : [];
                 if (images.length === 0) {
-                    modalImagePreview.classList.remove('has-image');
-                    modalPreviewImage.src = '';
                     modalGallery.innerHTML = '<p class="gallery-empty">Ehhez az eseményhez nincs feltöltött kép.</p>';
                 } else {
-                    modalImagePreview.classList.add('has-image');
-                    modalPreviewImage.src = images[0];
-                    modalPreviewImage.alt = 'Esemény kép 1';
                     modalGallery.innerHTML = images.map((imageSrc, index) => {
                         const safeSrc = escapeHtml(imageSrc);
                         const altText = `Esemény kép ${index + 1}`;
-                        return `<button type="button" class="gallery-thumb" data-src="${safeSrc}" aria-label="${escapeHtml(altText)} megnyitása">
+                        return `<button type="button" class="gallery-thumb" data-src="${safeSrc}" aria-label="${escapeHtml(altText)} teljes képernyős megnyitása">
                                     <img src="${safeSrc}" alt="${escapeHtml(altText)}" loading="lazy" decoding="async">
                                 </button>`;
                     }).join('');
@@ -391,6 +381,37 @@ foreach ($events as $event) {
                 document.body.classList.remove('modal-open');
             };
 
+            const openImageFullscreen = (imageElement) => {
+                const imageSrc = imageElement ? (imageElement.getAttribute('src') || '') : '';
+                if (!imageSrc) {
+                    return;
+                }
+
+                const openInNewTab = () => {
+                    window.open(imageSrc, '_blank', 'noopener,noreferrer');
+                };
+
+                if (imageElement && typeof imageElement.requestFullscreen === 'function') {
+                    imageElement.requestFullscreen().then(() => {
+                        const fullscreenTarget = document.fullscreenElement;
+                        if (!fullscreenTarget) {
+                            return;
+                        }
+
+                        const closeOnClick = () => {
+                            if (document.fullscreenElement) {
+                                document.exitFullscreen().catch(() => {});
+                            }
+                        };
+
+                        fullscreenTarget.addEventListener('click', closeOnClick, { once: true });
+                    }).catch(openInNewTab);
+                    return;
+                }
+
+                openInNewTab();
+            };
+
             cards.forEach((card) => {
                 card.addEventListener('click', () => {
                     try {
@@ -424,10 +445,8 @@ foreach ($events as $event) {
 
                 const fullSrc = thumbButton.getAttribute('data-src') || '';
                 const img = thumbButton.querySelector('img');
-                const alt = img ? img.alt : 'Nagyított eseménykép';
-                if (fullSrc) {
-                    modalPreviewImage.src = fullSrc;
-                    modalPreviewImage.alt = alt;
+                if (fullSrc && img) {
+                    openImageFullscreen(img);
                 }
             });
 

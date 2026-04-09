@@ -254,29 +254,6 @@ body.modal-open {
 	margin-top: 2rem;
 }
 
-.modal-image-preview {
-	margin-top: 1.25rem;
-	border: 1px solid #dbe2ea;
-	border-radius: 0.8rem;
-	background: #f8fafc;
-	min-height: 12rem;
-	display: none;
-	align-items: center;
-	justify-content: center;
-	overflow: hidden;
-}
-
-.modal-image-preview.has-image {
-	display: flex;
-}
-
-.modal-image-preview img {
-	width: 100%;
-	max-height: 18rem;
-	object-fit: contain;
-	display: block;
-}
-
 .modal-gallery {
 	margin-top: 1.25rem;
 	display: grid;
@@ -300,6 +277,13 @@ body.modal-open {
 	height: 100%;
 	object-fit: cover;
 	display: block;
+}
+
+.gallery-thumb img:fullscreen {
+	background: #000000;
+	object-fit: contain;
+	width: 100vw;
+	height: 100vh;
 }
 
 .gallery-thumb:hover,
