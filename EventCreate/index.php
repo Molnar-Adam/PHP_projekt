@@ -152,7 +152,7 @@ if (isset($_POST['userinfoSubmit'])) {
                                         bin2hex(random_bytes(8)),
                                         $imageData['extension']
                                     );
-                                    $relativePath = 'uploads' . $uniqueName;
+                                    $relativePath = 'uploads/' . $uniqueName;
                                     $targetPath = $uploadDir . '/' . $uniqueName;
 
                                     if (!move_uploaded_file($imageData['tmp_name'], $targetPath)) {
@@ -222,7 +222,7 @@ if (isset($_POST['userinfoSubmit'])) {
                     <input type="text" name="name" placeholder="Név">
 
                     <label>Leírás</label>
-                    <input type="text" name="description" placeholder="Leírás">
+                    <textarea name="description" placeholder="Leírás" rows="6" maxlength="1000"></textarea>
 
                     <label>Kategória</label>
                     <input type="text" name="category" placeholder="Kategória">

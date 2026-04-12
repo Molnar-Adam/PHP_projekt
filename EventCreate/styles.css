@@ -58,6 +58,7 @@ label {
 }
 
 input,
+textarea,
 form select,
 #restriction {
   width: 100%;
@@ -70,7 +71,14 @@ form select,
   transition: all 0.2s ease;
 }
 
+textarea {
+  resize: vertical;
+  min-height: 8rem;
+  line-height: 1.5;
+}
+
 input:focus,
+textarea:focus,
 form select:focus,
 #restriction:focus {
   outline: none;
@@ -88,7 +96,7 @@ button {
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  background: #eff6ff; /* Pale blue */
+  background: #eff6ff;
   color: #2563eb;
   transition: all 0.2s ease;
 }

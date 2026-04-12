@@ -15,6 +15,7 @@ include_once '../database.php';
 $currentUsername = (string) ($_SESSION['username'] ?? '');
 $events = [];
 $eventsForView = [];
+$eventImagesByEventId = [];
 $loadError = '';
 $actionNotice = '';
 $actionNoticeType = 'success';
@@ -94,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'togg
 try {
     $sql = "SELECT id, name, category, time_start, time_end, restriction, description, place, city, curr_letszam, max_letszam, attending_users
             FROM esemenyek
-            ORDER BY time_start DESC, id DESC";
+            ORDER BY time_start ASC, id ASC";
     $result = mysqli_query($conn, $sql);
     if ($result) {
         $events = mysqli_fetch_all($result, MYSQLI_ASSOC);
@@ -106,6 +107,30 @@ try {
     $loadError = 'Hiba tortent az esemenyek betoltese soran.';
 }
 
+try {
+    $imagesSql = 'SELECT event_id, image FROM event_images ORDER BY id ASC';
+    $imagesResult = mysqli_query($conn, $imagesSql);
+    if ($imagesResult) {
+        while ($row = mysqli_fetch_assoc($imagesResult)) {
+            $eventId = (int) ($row['event_id'] ?? 0);
+            $imagePath = trim((string) ($row['image'] ?? ''));
+            if ($eventId <= 0 || $imagePath === '') {
+                continue;
+            }
+
+            if (!isset($eventImagesByEventId[$eventId])) {
+                $eventImagesByEventId[$eventId] = [];
+            }
+
+            if (count($eventImagesByEventId[$eventId]) < 10) {
+                $eventImagesByEventId[$eventId][] = $imagePath;
+            }
+        }
+        mysqli_free_result($imagesResult);
+    }
+} catch (Exception $e) {
+}
+
 function formatEventDate($dateValue)
 {
     if (!$dateValue) {
@@ -115,7 +140,34 @@ function formatEventDate($dateValue)
     return $timestamp ? date('Y.m.d H:i', $timestamp) : 'Nincs megadva';
 }
 
+function toPublicImagePath($imagePath)
+{
+    $cleanedPath = trim((string) $imagePath);
+    if ($cleanedPath === '') {
+        return '';
+    }
+
+    if (preg_match('/^(https?:)?\/\//i', $cleanedPath)) {
+        return $cleanedPath;
+    }
+
+    if (str_starts_with($cleanedPath, '/')) {
+        return $cleanedPath;
+    }
+
+    if (str_starts_with($cleanedPath, 'uploads/')) {
+        return '../' . $cleanedPath;
+    }
+
+    if (str_starts_with($cleanedPath, 'uploads')) {
+        return '../uploads/' . ltrim(substr($cleanedPath, 7), '/\\');
+    }
+
+    return '../uploads/' . ltrim($cleanedPath, '/\\');
+}
+
 foreach ($events as $event) {
+    $eventId = (int) ($event['id'] ?? 0);
     $formattedStart = formatEventDate($event['time_start'] ?? null);
     $formattedEnd = formatEventDate($event['time_end'] ?? null);
 
@@ -136,9 +188,17 @@ foreach ($events as $event) {
     $maxLetszam = $event['max_letszam'] !== null ? (int) $event['max_letszam'] : null;
     $isAttending = in_array($currentUsername, $attendingUsers, true);
     $isFull = $maxLetszam !== null && $currLetszam >= $maxLetszam;
+    $eventImagesRaw = $eventImagesByEventId[$eventId] ?? [];
+    $eventImages = [];
+    foreach ($eventImagesRaw as $imagePath) {
+        $publicPath = toPublicImagePath($imagePath);
+        if ($publicPath !== '') {
+            $eventImages[] = $publicPath;
+        }
+    }
 
     $payload = json_encode([
-        'id' => (int) ($event['id'] ?? 0),
+        'id' => $eventId,
         'name' => (string) ($event['name'] ?? ''),
         'category' => (string) ($event['category'] ?? ''),
         'description' => (string) ($event['description'] ?? ''),
@@ -151,6 +211,7 @@ foreach ($events as $event) {
         'max_letszam' => (string) ($event['max_letszam'] ?? ''),
         'is_attending' => $isAttending,
         'is_full' => $isFull,
+        'images' => $eventImages,
     ], JSON_UNESCAPED_UNICODE);
 
     $eventsForView[] = [
@@ -220,6 +281,7 @@ foreach ($events as $event) {
             <div class="modal-content-wrapper">
                 <h2 id="modalTitle">Esemény részletei</h2>
                 <ul class="modal-meta" id="modalMeta"></ul>
+                <div class="modal-gallery" id="modalGallery" aria-label="Esemény képek"></div>
                 <form method="POST" class="modal-actions">
                     <input type="hidden" name="action" value="toggle_attendance">
                     <input type="hidden" name="event_id" id="modalEventId" value="">
@@ -234,11 +296,12 @@ foreach ($events as $event) {
             const modal = document.getElementById('eventModal');
             const modalClose = document.getElementById('modalClose');
             const modalMeta = document.getElementById('modalMeta');
+            const modalGallery = document.getElementById('modalGallery');
             const modalEventId = document.getElementById('modalEventId');
             const attendanceBtn = document.getElementById('attendanceBtn');
             const cards = document.querySelectorAll('.card[data-event]');
 
-            if (!modal || !modalClose || !modalMeta || !modalEventId || !attendanceBtn || cards.length === 0) {
+            if (!modal || !modalClose || !modalMeta || !modalGallery || !modalEventId || !attendanceBtn || cards.length === 0) {
                 return;
             }
 
@@ -254,20 +317,37 @@ foreach ($events as $event) {
                 const isAttending = Boolean(data.is_attending);
                 const isFull = Boolean(data.is_full);
                 const rows = [
-                    ['Név', data.name],
-                    ['Kategória', data.category],
-                    ['Leírás', data.description],
-                    ['Kezdés', data.time_start],
-                    ['Vége', data.time_end],
-                    ['Város', (data.city || '').trim()],
-                    ['Helyszín', (data.place || '').trim()],
-                    ['Korhatár', data.restriction ? data.restriction + '+' : 'Nincs megadva'],
-                    ['Létszám', `${data.curr_letszam || '0'}/${data.max_letszam || '0'}`]
+                    { label: 'Név', value: data.name },
+                    { label: 'Kategória', value: data.category },
+                    { label: 'Leírás', value: data.description, multiline: true },
+                    { label: 'Kezdés', value: data.time_start },
+                    { label: 'Vége', value: data.time_end },
+                    { label: 'Város', value: (data.city || '').trim() },
+                    { label: 'Helyszín', value: (data.place || '').trim() },
+                    { label: 'Korhatár', value: data.restriction ? data.restriction + '+' : 'Nincs megadva' },
+                    { label: 'Létszám', value: `${data.curr_letszam || '0'}/${data.max_letszam || '0'}` }
                 ];
 
-                modalMeta.innerHTML = rows.map(([label, value]) => {
-                    return `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`;
+                modalMeta.innerHTML = rows.map((row) => {
+                    const value = row.value === undefined || row.value === null || String(row.value).trim() === ''
+                        ? 'Nincs megadva'
+                        : String(row.value);
+                    const valueClass = row.multiline ? 'modal-meta-value multiline' : 'modal-meta-value';
+                    return `<li><strong>${escapeHtml(row.label)}:</strong><span class="${valueClass}">${escapeHtml(value)}</span></li>`;
                 }).join('');
+
+                const images = Array.isArray(data.images) ? data.images.slice(0, 10) : [];
+                if (images.length === 0) {
+                    modalGallery.innerHTML = '<p class="gallery-empty">Ehhez az eseményhez nincs feltöltött kép.</p>';
+                } else {
+                    modalGallery.innerHTML = images.map((imageSrc, index) => {
+                        const safeSrc = escapeHtml(imageSrc);
+                        const altText = `Esemény kép ${index + 1}`;
+                        return `<button type="button" class="gallery-thumb" data-src="${safeSrc}" aria-label="${escapeHtml(altText)} teljes képernyős megnyitása">
+                                    <img src="${safeSrc}" alt="${escapeHtml(altText)}" loading="lazy" decoding="async">
+                                </button>`;
+                    }).join('');
+                }
 
                 if (Number.isInteger(eventId) && eventId > 0) {
                     modalEventId.value = String(eventId);
@@ -301,6 +381,37 @@ foreach ($events as $event) {
                 document.body.classList.remove('modal-open');
             };
 
+            const openImageFullscreen = (imageElement) => {
+                const imageSrc = imageElement ? (imageElement.getAttribute('src') || '') : '';
+                if (!imageSrc) {
+                    return;
+                }
+
+                const openInNewTab = () => {
+                    window.open(imageSrc, '_blank', 'noopener,noreferrer');
+                };
+
+                if (imageElement && typeof imageElement.requestFullscreen === 'function') {
+                    imageElement.requestFullscreen().then(() => {
+                        const fullscreenTarget = document.fullscreenElement;
+                        if (!fullscreenTarget) {
+                            return;
+                        }
+
+                        const closeOnClick = () => {
+                            if (document.fullscreenElement) {
+                                document.exitFullscreen().catch(() => {});
+                            }
+                        };
+
+                        fullscreenTarget.addEventListener('click', closeOnClick, { once: true });
+                    }).catch(openInNewTab);
+                    return;
+                }
+
+                openInNewTab();
+            };
+
             cards.forEach((card) => {
                 card.addEventListener('click', () => {
                     try {
@@ -326,13 +437,25 @@ foreach ($events as $event) {
                 }
             });
 
+            modalGallery.addEventListener('click', (event) => {
+                const thumbButton = event.target.closest('.gallery-thumb');
+                if (!thumbButton) {
+                    return;
+                }
+
+                const fullSrc = thumbButton.getAttribute('data-src') || '';
+                const img = thumbButton.querySelector('img');
+                if (fullSrc && img) {
+                    openImageFullscreen(img);
+                }
+            });
+
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' && modal.classList.contains('open')) {
                     closeModal();
                 }
             });
 
-            // Auto-hide action notices after 5 seconds
             const notices = document.querySelectorAll('.state.success, .state.error');
             notices.forEach(notice => {
                 setTimeout(() => {
