@@ -267,7 +267,6 @@ foreach ($events as $event) {
             <button type="button" class="modal-close" id="modalClose" aria-label="Bezárás">&times;</button>
             <div class="modal-content-wrapper">
                 <h2 id="modalTitle">Esemény szerkesztése</h2>
-                <ul class="modal-meta" id="modalMeta"></ul>
                 <form method="POST" class="modal-form" id="editEventForm">
                     <input type="hidden" name="action" value="update_event">
                     <input type="hidden" name="event_id" id="modalEventId" value="">
@@ -339,7 +338,6 @@ foreach ($events as $event) {
             const modal = document.getElementById('eventModal');
             const modalClose = document.getElementById('modalClose');
             const modalCloseSecondary = document.getElementById('modalCloseSecondary');
-            const modalMeta = document.getElementById('modalMeta');
             const modalEventId = document.getElementById('modalEventId');
             const modalName = document.getElementById('modalName');
             const modalCategory = document.getElementById('modalCategory');
@@ -354,7 +352,7 @@ foreach ($events as $event) {
             const notices = document.querySelectorAll('.state.success, .state.error');
             const cards = document.querySelectorAll('.card[data-event]');
 
-            if (!modal || !modalClose || !modalCloseSecondary || !modalMeta || !modalEventId || !modalName || !modalCategory || !modalDescription || !modalStarttime || !modalEndtime || !modalCity || !modalPlace || !modalRestriction || !modalMaxLetszam || !editForm) {
+            if (!modal || !modalClose || !modalCloseSecondary || !modalEventId || !modalName || !modalCategory || !modalDescription || !modalStarttime || !modalEndtime || !modalCity || !modalPlace || !modalRestriction || !modalMaxLetszam || !editForm) {
                 return;
             }
 
@@ -371,30 +369,11 @@ foreach ($events as $event) {
                 return;
             }
 
-            const escapeHtml = (value) => {
-                const temp = document.createElement('span');
-                temp.textContent = value ?? '';
-                return temp.innerHTML;
-            };
-
             const openModal = (payload) => {
                 const data = payload || {};
                 const eventId = Number.parseInt(data.id, 10);
                 const currLetszam = Number.parseInt(data.curr_letszam, 10) || 0;
                 const maxLetszam = Number.parseInt(data.max_letszam, 10) || 0;
-                const rows = [
-                    ['Név', data.name],
-                    ['Kategória', data.category],
-                    ['Kezdés', data.time_start],
-                    ['Vége', data.time_end],
-                    ['Helyszín', [data.city, data.place].filter(Boolean).join(', ')],
-                    ['Korhatár', Number.parseInt(data.restriction, 10) > 0 ? Number.parseInt(data.restriction, 10) + '+' : 'Nincs korhatár'],
-                    ['Létszám', `${currLetszam}/${maxLetszam}`]
-                ];
-
-                modalMeta.innerHTML = rows.map(([label, value]) => {
-                    return `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`;
-                }).join('');
 
                 if (Number.isInteger(eventId) && eventId > 0) {
                     modalEventId.value = String(eventId);
