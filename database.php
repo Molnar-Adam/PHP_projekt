@@ -15,4 +15,12 @@ if (!$conn) {
 
 // karakterkódolás
 mysqli_set_charset($conn, "utf8mb4");
+
+$cleanupLockFile = __DIR__ . '/uploads/.cleanup_lock';
+$cleanupInterval = 60; 
+
+if (!@file_exists($cleanupLockFile) || (time() - @filemtime($cleanupLockFile)) >= $cleanupInterval) {
+    @touch($cleanupLockFile);
+    mysqli_query($conn, "DELETE FROM esemenyek WHERE time_end < NOW()");
+}
 ?>

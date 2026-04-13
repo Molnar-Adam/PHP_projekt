@@ -166,7 +166,7 @@ try {
         'SELECT id, name, category, time_start, time_end, restriction, description, place, city, curr_letszam, max_letszam
          FROM esemenyek
          WHERE created_by = ?
-         ORDER BY time_start DESC, id DESC'
+            ORDER BY time_start ASC, id ASC'
     );
     mysqli_stmt_bind_param($stmtEvents, 's', $currentUsername);
     mysqli_stmt_execute($stmtEvents);
