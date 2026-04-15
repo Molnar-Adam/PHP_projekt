@@ -25,6 +25,44 @@ h1 {
 	font-weight: 700;
 }
 
+.filter-container {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.5rem;
+	align-items: center;
+	margin-bottom: 2.5rem;
+	background: #ffffff;
+	padding: 1.5rem;
+	border-radius: 1.25rem;
+	border: 1px solid #f0f0f0;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+}
+
+.filter-group {
+	flex: 1;
+	min-width: 280px;
+}
+
+.filter-group input,
+.filter-group select {
+	width: 100%;
+	padding: 0.75rem 1rem;
+	border: 1.5px solid #e5e7eb;
+	border-radius: 0.75rem;
+	font-size: 0.95rem;
+	font-family: inherit;
+	transition: all 0.2s;
+	background: #f9fafb;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+	outline: none;
+	border-color: #2563eb;
+	background: #ffffff;
+	box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
 .state {
 	background: #ffffff;
 	border: 0.0625rem solid #d5d5d5;

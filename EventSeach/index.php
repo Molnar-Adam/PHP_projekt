@@ -20,6 +20,22 @@ $loadError = '';
 $actionNotice = '';
 $actionNoticeType = 'success';
 
+$searchName = trim((string) ($_GET['search_name'] ?? ''));
+$searchMonth = (int) ($_GET['search_month'] ?? 0);
+$searchLocation = trim((string) ($_GET['search_location'] ?? ''));
+
+$locations = [];
+try {
+    $locSql = "SELECT DISTINCT city FROM esemenyek WHERE city IS NOT NULL AND city != '' ORDER BY city ASC";
+    $locRes = mysqli_query($conn, $locSql);
+    if ($locRes) {
+        while ($lRow = mysqli_fetch_assoc($locRes)) {
+            $locations[] = (string) $lRow['city'];
+        }
+        mysqli_free_result($locRes);
+    }
+} catch (Exception $e) {}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'toggle_attendance')) {
     $eventId = filter_input(INPUT_POST, 'event_id', FILTER_VALIDATE_INT);
 
@@ -93,13 +109,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'togg
 
 
 try {
+    $whereConditions = [];
+    $params = [];
+    $types = '';
+
+    if ($searchName !== '') {
+        $whereConditions[] = 'name LIKE ?';
+        $params[] = '%' . $searchName . '%';
+        $types .= 's';
+    }
+
+    if ($searchMonth >= 1 && $searchMonth <= 12) {
+        $whereConditions[] = 'MONTH(time_start) = ?';
+        $params[] = $searchMonth;
+        $types .= 'i';
+    }
+
+    if ($searchLocation !== '') {
+        $whereConditions[] = "city = ?";
+        $params[] = $searchLocation;
+        $types .= 's';
+    }
+
     $sql = "SELECT id, name, category, time_start, time_end, restriction, description, place, city, curr_letszam, max_letszam, attending_users
-            FROM esemenyek
-            ORDER BY time_start ASC, id ASC";
-    $result = mysqli_query($conn, $sql);
-    if ($result) {
-        $events = mysqli_fetch_all($result, MYSQLI_ASSOC);
-        mysqli_free_result($result);
+            FROM esemenyek";
+    
+    if (!empty($whereConditions)) {
+        $sql .= " WHERE " . implode(' AND ', $whereConditions);
+    }
+
+    $sql .= " ORDER BY time_start ASC, id ASC";
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if ($stmt) {
+        if (!empty($params)) {
+            mysqli_stmt_bind_param($stmt, $types, ...$params);
+        }
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        if ($result) {
+            $events = mysqli_fetch_all($result, MYSQLI_ASSOC);
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
     } else {
         $loadError = 'Nem sikerult betolteni az esemenyeket.';
     }
@@ -247,7 +299,39 @@ foreach ($events as $event) {
 
     <main class="page-shell">
         <h1>Események</h1>
-
+        <form method="GET" class="filter-container" id="filter-form">
+            <div class="filter-group">
+                <input type="text" name="search_name" id="search_name" placeholder="Esemény keresése..." value="<?php echo htmlspecialchars($searchName); ?>" autocomplete="off">
+            </div>
+            <div class="filter-group">
+                <select name="search_month" id="search_month">
+                    <option value="0">Összes hónap</option>
+                    <?php
+                    $months = [
+                        1 => 'Január', 2 => 'Február', 3 => 'Március',
+                        4 => 'Április', 5 => 'Május', 6 => 'Június',
+                        7 => 'Július', 8 => 'Augusztus', 9 => 'Szeptember',
+                        10 => 'Október', 11 => 'November', 12 => 'December'
+                    ];
+                    foreach ($months as $num => $monthName) {
+                        $selected = ($searchMonth === $num) ? 'selected' : '';
+                        echo "<option value=\"$num\" $selected>$monthName</option>";
+                    }
+                    ?>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select name="search_location" id="search_location">
+                    <option value="">Összes város</option>
+                    <?php
+                    foreach ($locations as $loc) {
+                        $selected = ($searchLocation === $loc) ? 'selected' : '';
+                        echo "<option value=\"" . htmlspecialchars($loc) . "\" $selected>" . htmlspecialchars($loc) . "</option>";
+                    }
+                    ?>
+                </select>
+            </div>
+        </form>
         <?php if ($actionNotice !== ''): ?>
             <p class="state <?= $actionNoticeType === 'error' ? 'error' : 'success' ?>"><?= htmlspecialchars($actionNotice, ENT_QUOTES, 'UTF-8') ?></p>
         <?php endif; ?>
@@ -465,6 +549,33 @@ foreach ($events as $event) {
                     setTimeout(() => notice.remove(), 500);
                 }, 5000);
             });
+
+            const filterForm = document.getElementById('filter-form');
+            const nameInput = document.getElementById('search_name');
+            const monthSelect = document.getElementById('search_month');
+            const locationSelect = document.getElementById('search_location');
+
+            let searchTimeout;
+            nameInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    filterForm.submit();
+                }, 500);
+            });
+
+            monthSelect.addEventListener('change', () => {
+                filterForm.submit();
+            });
+
+            locationSelect.addEventListener('change', () => {
+                filterForm.submit();
+            });
+
+            // Keep cursor at end after reload
+            if (nameInput.value !== '') {
+                nameInput.focus();
+                nameInput.setSelectionRange(nameInput.value.length, nameInput.value.length);
+            }
         })();
     </script>
 </body>
