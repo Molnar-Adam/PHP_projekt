@@ -94,7 +94,6 @@
 
     <script>
         (function () {
-            // Auto-hide notices after 5 seconds
             const notices = document.querySelectorAll('.notice.success, .notice.error');
             notices.forEach(notice => {
                 setTimeout(() => {

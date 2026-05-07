@@ -21,18 +21,28 @@ $actionNotice = '';
 $actionNoticeType = 'success';
 
 $searchName = trim((string) ($_GET['search_name'] ?? ''));
-$searchMonth = (int) ($_GET['search_month'] ?? 0);
-$searchLocation = trim((string) ($_GET['search_location'] ?? ''));
+$searchCity = trim((string) ($_GET['search_city'] ?? ''));
+$searchCategory = trim((string) ($_GET['search_category'] ?? ''));
+$searchDateFrom = trim((string) ($_GET['search_date_from'] ?? ''));
+$searchDateTo = trim((string) ($_GET['search_date_to'] ?? ''));
+$searchRestriction = (int) ($_GET['search_restriction'] ?? 0);
 
-$locations = [];
+$availableCities = [];
+$availableCategories = [];
 try {
-    $locSql = "SELECT DISTINCT city FROM esemenyek WHERE city IS NOT NULL AND city != '' ORDER BY city ASC";
-    $locRes = mysqli_query($conn, $locSql);
-    if ($locRes) {
-        while ($lRow = mysqli_fetch_assoc($locRes)) {
-            $locations[] = (string) $lRow['city'];
+    $resCity = mysqli_query($conn, "SELECT DISTINCT city FROM esemenyek WHERE city IS NOT NULL AND city != '' ORDER BY city ASC");
+    if ($resCity) {
+        while ($row = mysqli_fetch_assoc($resCity)) {
+            $availableCities[] = (string) $row['city'];
         }
-        mysqli_free_result($locRes);
+        mysqli_free_result($resCity);
+    }
+    $resCat = mysqli_query($conn, "SELECT DISTINCT category FROM esemenyek WHERE category IS NOT NULL AND category != '' ORDER BY category ASC");
+    if ($resCat) {
+        while ($row = mysqli_fetch_assoc($resCat)) {
+            $availableCategories[] = (string) $row['category'];
+        }
+        mysqli_free_result($resCat);
     }
 } catch (Exception $e) {}
 
@@ -119,16 +129,34 @@ try {
         $types .= 's';
     }
 
-    if ($searchMonth >= 1 && $searchMonth <= 12) {
-        $whereConditions[] = 'MONTH(time_start) = ?';
-        $params[] = $searchMonth;
-        $types .= 'i';
+    if ($searchCity !== '') {
+        $whereConditions[] = 'city = ?';
+        $params[] = $searchCity;
+        $types .= 's';
     }
 
-    if ($searchLocation !== '') {
-        $whereConditions[] = "city = ?";
-        $params[] = $searchLocation;
+    if ($searchCategory !== '') {
+        $whereConditions[] = 'category = ?';
+        $params[] = $searchCategory;
         $types .= 's';
+    }
+
+    if ($searchDateFrom !== '') {
+        $whereConditions[] = 'time_start >= ?';
+        $params[] = $searchDateFrom . ' 00:00:00';
+        $types .= 's';
+    }
+
+    if ($searchDateTo !== '') {
+        $whereConditions[] = 'time_start <= ?';
+        $params[] = $searchDateTo . ' 23:59:59';
+        $types .= 's';
+    }
+
+    if ($searchRestriction > 0) {
+        $whereConditions[] = 'restriction >= ?';
+        $params[] = $searchRestriction;
+        $types .= 'i';
     }
 
     $sql = "SELECT id, name, category, time_start, time_end, restriction, description, place, city, curr_letszam, max_letszam, attending_users
@@ -299,64 +327,76 @@ foreach ($events as $event) {
 
     <main class="page-shell">
         <h1>Események</h1>
-        <form method="GET" class="filter-container" id="filter-form">
+        
+        <form method="GET" action="index.php" class="filter-container" id="filter-form">
             <div class="filter-group">
-                <input type="text" name="search_name" id="search_name" placeholder="Esemény keresése..." value="<?php echo htmlspecialchars($searchName); ?>" autocomplete="off">
+                <label for="search_name">Név:</label>
+                <input type="text" name="search_name" id="search_name" placeholder="Esemény keresése..." value="<?= htmlspecialchars($searchName) ?>">
             </div>
             <div class="filter-group">
-                <select name="search_month" id="search_month">
-                    <option value="0">Összes hónap</option>
-                    <?php
-                    $months = [
-                        1 => 'Január', 2 => 'Február', 3 => 'Március',
-                        4 => 'Április', 5 => 'Május', 6 => 'Június',
-                        7 => 'Július', 8 => 'Augusztus', 9 => 'Szeptember',
-                        10 => 'Október', 11 => 'November', 12 => 'December'
-                    ];
-                    foreach ($months as $num => $monthName) {
-                        $selected = ($searchMonth === $num) ? 'selected' : '';
-                        echo "<option value=\"$num\" $selected>$monthName</option>";
-                    }
-                    ?>
+                <label for="search_city">Város:</label>
+                <select name="search_city" id="search_city">
+                    <option value="">Összes</option>
+                    <?php foreach ($availableCities as $city): ?>
+                        <option value="<?= htmlspecialchars($city) ?>" <?= $searchCity === $city ? 'selected' : '' ?>><?= htmlspecialchars($city) ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             <div class="filter-group">
-                <select name="search_location" id="search_location">
-                    <option value="">Összes város</option>
-                    <?php
-                    foreach ($locations as $loc) {
-                        $selected = ($searchLocation === $loc) ? 'selected' : '';
-                        echo "<option value=\"" . htmlspecialchars($loc) . "\" $selected>" . htmlspecialchars($loc) . "</option>";
-                    }
-                    ?>
+                <label for="search_category">Kategória:</label>
+                <select name="search_category" id="search_category">
+                    <option value="">Összes</option>
+                    <?php foreach ($availableCategories as $cat): ?>
+                        <option value="<?= htmlspecialchars($cat) ?>" <?= $searchCategory === $cat ? 'selected' : '' ?>><?= htmlspecialchars($cat) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="search_date_from">Dátum (eleje):</label>
+                <input type="date" name="search_date_from" id="search_date_from" value="<?= htmlspecialchars($searchDateFrom) ?>">
+            </div>
+            <div class="filter-group">
+                <label for="search_date_to">Dátum (vége):</label>
+                <input type="date" name="search_date_to" id="search_date_to" value="<?= htmlspecialchars($searchDateTo) ?>">
+            </div>
+            <div class="filter-group">
+                <label for="search_restriction">Minimum korhatár:</label>
+                <select name="search_restriction" id="search_restriction">
+                    <option value="0">Összes</option>
+                    <option value="12" <?= $searchRestriction === 12 ? 'selected' : '' ?>>12+</option>
+                    <option value="16" <?= $searchRestriction === 16 ? 'selected' : '' ?>>16+</option>
+                    <option value="18" <?= $searchRestriction === 18 ? 'selected' : '' ?>>18+</option>
                 </select>
             </div>
         </form>
-        <?php if ($actionNotice !== ''): ?>
-            <p class="state <?= $actionNoticeType === 'error' ? 'error' : 'success' ?>"><?= htmlspecialchars($actionNotice, ENT_QUOTES, 'UTF-8') ?></p>
-        <?php endif; ?>
 
-        <?php if ($loadError !== ''): ?>
-            <p class="state error"><?= htmlspecialchars($loadError, ENT_QUOTES, 'UTF-8') ?></p>
-        <?php elseif (count($eventsForView) === 0): ?>
-            <p class="state">Még nincs létrehozott esemény.</p>
-        <?php else: ?>
-            <section class="grid">
-                <?php foreach ($eventsForView as $event): ?>
-                    <article class="card" tabindex="0" role="button" data-event="<?= $event['payload'] ?>" aria-label="Részletek megnyitása: <?= htmlspecialchars($event['name'], ENT_QUOTES, 'UTF-8') ?>">
-                        <h2><?= htmlspecialchars($event['name'], ENT_QUOTES, 'UTF-8') ?></h2>
-                        <p class="category"><?= htmlspecialchars($event['category'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <ul class="meta">
-                            <li><strong>Kezdés:</strong> <?= htmlspecialchars($event['formatted_time_start'], ENT_QUOTES, 'UTF-8') ?></li>
-                            <li><strong>Vége:</strong> <?= htmlspecialchars($event['formatted_time_end'], ENT_QUOTES, 'UTF-8') ?></li>
-                            <li><strong>Helyszín:</strong> <?= htmlspecialchars($event['location'], ENT_QUOTES, 'UTF-8') ?></li>
-                            <li><strong>Korhatár:</strong> <?= htmlspecialchars((string) $event['restriction'], ENT_QUOTES, 'UTF-8') ?>+</li>
-                            <li><strong>Létszám:</strong> <?= htmlspecialchars((string) ($event['curr_letszam']), ENT_QUOTES, 'UTF-8') ?>/<?= htmlspecialchars((string) ($event['max_letszam']), ENT_QUOTES, 'UTF-8') ?></li>
-                        </ul>
-                    </article>
-                <?php endforeach; ?>
-            </section>
-        <?php endif; ?>
+        <div id="results-container">
+            <?php if ($actionNotice !== ''): ?>
+                <p class="state <?= $actionNoticeType === 'error' ? 'error' : 'success' ?>"><?= htmlspecialchars($actionNotice, ENT_QUOTES, 'UTF-8') ?></p>
+            <?php endif; ?>
+
+            <?php if ($loadError !== ''): ?>
+                <p class="state error"><?= htmlspecialchars($loadError, ENT_QUOTES, 'UTF-8') ?></p>
+            <?php elseif (count($eventsForView) === 0): ?>
+                <p class="state">Még nincs létrehozott esemény.</p>
+            <?php else: ?>
+                <section class="grid">
+                    <?php foreach ($eventsForView as $event): ?>
+                        <article class="card" tabindex="0" role="button" data-event="<?= $event['payload'] ?>" aria-label="Részletek megnyitása: <?= htmlspecialchars($event['name'], ENT_QUOTES, 'UTF-8') ?>">
+                            <h2><?= htmlspecialchars($event['name'], ENT_QUOTES, 'UTF-8') ?></h2>
+                            <p class="category"><?= htmlspecialchars($event['category'], ENT_QUOTES, 'UTF-8') ?></p>
+                            <ul class="meta">
+                                <li><strong>Kezdés:</strong> <?= htmlspecialchars($event['formatted_time_start'], ENT_QUOTES, 'UTF-8') ?></li>
+                                <li><strong>Vége:</strong> <?= htmlspecialchars($event['formatted_time_end'], ENT_QUOTES, 'UTF-8') ?></li>
+                                <li><strong>Helyszín:</strong> <?= htmlspecialchars($event['location'], ENT_QUOTES, 'UTF-8') ?></li>
+                                <li><strong>Korhatár:</strong> <?= htmlspecialchars((string) $event['restriction'], ENT_QUOTES, 'UTF-8') ?>+</li>
+                                <li><strong>Létszám:</strong> <?= htmlspecialchars((string) ($event['curr_letszam']), ENT_QUOTES, 'UTF-8') ?>/<?= htmlspecialchars((string) ($event['max_letszam']), ENT_QUOTES, 'UTF-8') ?></li>
+                            </ul>
+                        </article>
+                    <?php endforeach; ?>
+                </section>
+            <?php endif; ?>
+        </div>
     </main>
 
     <div class="modal-overlay" id="eventModal" aria-hidden="true">
@@ -377,17 +417,38 @@ foreach ($events as $event) {
 
     <script>
         (function () {
+            const initCards = () => {
+                const cards = document.querySelectorAll('.card[data-event]');
+                cards.forEach((card) => {
+                    card.addEventListener('click', () => {
+                        try {
+                            openModal(JSON.parse(card.dataset.event || '{}'));
+                        } catch (err) {
+                            openModal({});
+                        }
+                    });
+
+                    card.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            card.click();
+                        }
+                    });
+                });
+            };
+
             const modal = document.getElementById('eventModal');
             const modalClose = document.getElementById('modalClose');
             const modalMeta = document.getElementById('modalMeta');
             const modalGallery = document.getElementById('modalGallery');
             const modalEventId = document.getElementById('modalEventId');
             const attendanceBtn = document.getElementById('attendanceBtn');
-            const cards = document.querySelectorAll('.card[data-event]');
 
-            if (!modal || !modalClose || !modalMeta || !modalGallery || !modalEventId || !attendanceBtn || cards.length === 0) {
+            if (!modal || !modalClose || !modalMeta || !modalGallery || !modalEventId || !attendanceBtn) {
                 return;
             }
+
+            initCards();
 
             const escapeHtml = (value) => {
                 const temp = document.createElement('span');
@@ -496,23 +557,6 @@ foreach ($events as $event) {
                 openInNewTab();
             };
 
-            cards.forEach((card) => {
-                card.addEventListener('click', () => {
-                    try {
-                        openModal(JSON.parse(card.dataset.event || '{}'));
-                    } catch (err) {
-                        openModal({});
-                    }
-                });
-
-                card.addEventListener('keydown', (event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        card.click();
-                    }
-                });
-            });
-
             modalClose.addEventListener('click', closeModal);
 
             modal.addEventListener('click', (event) => {
@@ -551,30 +595,56 @@ foreach ($events as $event) {
             });
 
             const filterForm = document.getElementById('filter-form');
-            const nameInput = document.getElementById('search_name');
-            const monthSelect = document.getElementById('search_month');
-            const locationSelect = document.getElementById('search_location');
+            if (filterForm) {
+                const inputs = filterForm.querySelectorAll('input:not([type="hidden"]), select');
+                let searchTimeout;
 
-            let searchTimeout;
-            nameInput.addEventListener('input', () => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    filterForm.submit();
-                }, 500);
-            });
+                const performSearch = () => {
+                    const formData = new FormData(filterForm);
+                    const params = new URLSearchParams(formData);
+                    const url = 'index.php?' + params.toString();
 
-            monthSelect.addEventListener('change', () => {
-                filterForm.submit();
-            });
+                    fetch(url)
+                        .then(res => res.text())
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            const newContainer = doc.getElementById('results-container');
+                            const currContainer = document.getElementById('results-container');
+                            
+                            if (newContainer && currContainer) {
+                                currContainer.innerHTML = newContainer.innerHTML;
+                                initCards();
+                            }
+                            window.history.replaceState(null, '', url);
+                        })
+                        .catch(err => console.error('Hiba a keresés közben:', err));
+                };
 
-            locationSelect.addEventListener('change', () => {
-                filterForm.submit();
-            });
+                filterForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    performSearch();
+                });
 
-            // Keep cursor at end after reload
-            if (nameInput.value !== '') {
-                nameInput.focus();
-                nameInput.setSelectionRange(nameInput.value.length, nameInput.value.length);
+                inputs.forEach(input => {
+                    if (input.tagName.toLowerCase() === 'input' && input.type === 'text') {
+                    } else if (input.type === 'checkbox') {
+                        input.addEventListener('change', performSearch);
+                    } else {
+                        input.addEventListener('change', performSearch);
+                    }
+                });
+
+                const nameInput = document.getElementById('search_name');
+                if (nameInput && nameInput.value !== '') {
+                    nameInput.focus();
+                    const len = nameInput.value.length;
+                    nameInput.setSelectionRange(len, len);
+                }
+            }
+
+            if (window.location.search) {
+                window.history.replaceState(null, '', window.location.pathname);
             }
         })();
     </script>

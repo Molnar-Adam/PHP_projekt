@@ -71,7 +71,6 @@ function processUploadedImages(?array $imagesInput, int $maxEventImages): array
         ];
     }
 
-    finfo_close($fileInfo);
 
     if (count($selectedImageIndexes) !== count($validatedImages)) {
         return [
@@ -225,7 +224,19 @@ if (isset($_POST['userinfoSubmit'])) {
                     <textarea name="description" placeholder="Leírás" rows="6" maxlength="1000"></textarea>
 
                     <label>Kategória</label>
-                    <input type="text" name="category" placeholder="Kategória">
+                    <select name="category" id="category" required>
+                        <option value="" disabled selected>Válassz kategóriát</option>
+                        <option value="Koncert">Koncert</option>
+                        <option value="Fesztivál">Fesztivál</option>
+                        <option value="Színház">Színház</option>
+                        <option value="Mozi">Mozi</option>
+                        <option value="Sport">Sport</option>
+                        <option value="Kiállítás">Kiállítás</option>
+                        <option value="Buli">Buli</option>
+                        <option value="Családi program">Családi program</option>
+                        <option value="Workshop / Szakmai">Workshop / Szakmai</option>
+                        <option value="Egyéb">Egyéb</option>
+                    </select>
 
                     <label>Kezdés időpontja</label>
                     <input type="datetime-local" name="starttime" placeholder="Kezdés időpontja"
@@ -265,7 +276,6 @@ if (isset($_POST['userinfoSubmit'])) {
 
     <script>
         (function () {
-            // Auto-hide notices after 5 seconds
             const notices = document.querySelectorAll('.notice.success, .notice.error');
             notices.forEach(notice => {
                 setTimeout(() => {
